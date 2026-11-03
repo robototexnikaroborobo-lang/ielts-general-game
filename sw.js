@@ -1,6 +1,6 @@
-const CACHE = 'ielts-quest-v3';
-const APP_SHELL = ['./', './index.html', './styles.css', './questions.js', './app.js', './manifest.webmanifest'];
-const NETWORK_FIRST_SUFFIXES = ['/index.html', '/styles.css', '/questions.js', '/app.js', '/manifest.webmanifest'];
+const CACHE = 'ielts-quest-v4';
+const APP_SHELL = ['./', './index.html', './styles.css', './questions.js', './questions-time.js', './app.js', './manifest.webmanifest'];
+const NETWORK_FIRST_SUFFIXES = ['/index.html', '/styles.css', '/questions.js', '/questions-time.js', '/app.js', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
