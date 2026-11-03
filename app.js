@@ -3,11 +3,11 @@ const exercises = [{
   passage: 'RIVERSIDE COMMUNITY CENTRE — WEEKEND WORKSHOPS\n\nThe centre is running a series of Saturday workshops throughout June. The photography workshop takes place from 10:00 a.m. to 12:30 p.m. and is suitable for beginners. Participants should bring their own camera; a limited number of cameras can be borrowed if requested when booking.\n\nThe cooking class runs from 1:30 p.m. to 4:00 p.m. Ingredients are provided, but please tell us about any food allergies at least three days before the class. Both workshops cost £18. Members receive a 20% discount. To reserve a place, email bookings@riversidecentre.example or visit the reception desk. Cancellations made less than 24 hours before a workshop are not refundable.',
   source: 'Material: original practice text written for IELTS Quest. It is not taken from a past IELTS test. Permission status: original.',
   questions: [
-    { text: 'What should someone do if they need to borrow a camera?', options: ['Pay an additional camera fee', 'Ask for one when making the booking', 'Arrive before 9:00 a.m.', 'Contact the cooking instructor'], answer: 1, explain: 'Matnda kamera kerak bo‘lsa, uni bron qilish paytida so‘rash kerakligi aytilgan.' },
-    { text: 'When should participants report a food allergy?', options: ['On the day of the class', 'At least three days in advance', 'When paying for the workshop', 'Within 24 hours of booking'], answer: 1, explain: 'Matnda allergiyalar haqida mashg‘ulotdan kamida uch kun oldin xabar berish so‘raladi.' },
-    { text: 'How much does a centre member pay for one workshop?', options: ['£3.60', '£14.40', '£18.00', '£20.00'], answer: 1, explain: '£18 narxdan 20% chegirma — £3.60. To‘lanadigan summa £14.40.' },
-    { text: 'Which statement is true about the workshops?', options: ['Both workshops are held in the morning.', 'The centre supplies ingredients for the cooking class.', 'Only members may book a place.', 'Late cancellations receive a full refund.'], answer: 1, explain: 'Matnda cooking class uchun masalliqlar berilishi yozilgan.' },
-    { text: 'How can a participant reserve a place?', options: ['By calling the instructor', 'By sending an email or visiting reception', 'By completing an online form only', 'By paying at the workshop'], answer: 1, explain: 'Joyni email yuborib yoki qabulxonaga borib band qilish mumkin.' }
+    { text: 'What should someone do if they need to borrow a camera?', options: ['Pay an additional camera fee', 'Arrive before 9:00 a.m.', 'Contact the cooking instructor', 'Ask for one when making the booking'], answer: 3, explain: 'Matnda kamera kerak bo‘lsa, uni bron qilish paytida so‘rash kerakligi aytilgan.' },
+    { text: 'When should participants report a food allergy?', options: ['At least three days in advance', 'On the day of the class', 'When paying for the workshop', 'Within 24 hours of booking'], answer: 0, explain: 'Matnda allergiyalar haqida mashg‘ulotdan kamida uch kun oldin xabar berish so‘raladi.' },
+    { text: 'How much does a centre member pay for one workshop?', options: ['£3.60', '£18.00', '£14.40', '£20.00'], answer: 2, explain: '£18 narxdan 20% chegirma — £3.60. To‘lanadigan summa £14.40.' },
+    { text: 'Which statement is true about the workshops?', options: ['Both workshops are held in the morning.', 'Only members may book a place.', 'Late cancellations receive a full refund.', 'The centre supplies ingredients for the cooking class.'], answer: 3, explain: 'Matnda cooking class uchun masalliqlar berilishi yozilgan.' },
+    { text: 'How can a participant reserve a place?', options: ['By sending an email or visiting reception', 'By calling the instructor', 'By completing an online form only', 'By paying at the workshop'], answer: 0, explain: 'Joyni email yuborib yoki qabulxonaga borib band qilish mumkin.' }
   ]
 }];
 
@@ -17,6 +17,7 @@ let progress = loadProgress();
 let questionIndex = 0;
 let selectedAnswer = null;
 let answered = false;
+let exerciseCompleted = false;
 
 function loadProgress() {
   try { return JSON.parse(localStorage.getItem(storageKey)) || { score: 0, correct: 0, today: 0, lastDate: '', streak: 0, completed: [] }; }
@@ -36,11 +37,12 @@ function updateStats() {
   $('total-score').textContent = progress.score;
   $('correct-total').textContent = progress.correct;
   $('today-progress').textContent = `${Math.min(progress.today, 5)} / 5`;
-  $('streak-count').textContent = `${progress.streak} ${progress.streak === 1 ? 'kun' : 'kun'}`;
+  $('streak-count').textContent = `${progress.streak} kun`;
 }
 function renderQuestion() {
   const exercise = exercises[0];
   const question = exercise.questions[questionIndex];
+  exerciseCompleted = false;
   $('passage-title').textContent = exercise.title;
   $('passage-text').textContent = exercise.passage;
   $('source-note').textContent = exercise.source;
@@ -76,10 +78,33 @@ function renderQuestion() {
     $('answer-list').append(button);
   });
 }
+function showCompletion() {
+  exerciseCompleted = true;
+  $('question-label').textContent = 'MASHQ YAKUNLANDI';
+  $('question-text').textContent = 'Barakalla! Barcha 5 ta savolni ishlab chiqdingiz.';
+  $('question-count').textContent = '5 / 5';
+  $('answer-list').replaceChildren();
+  const summary = document.createElement('p');
+  summary.className = 'completion-summary';
+  summary.textContent = 'Natijangiz saqlandi. Xohlasangiz, mashqni qaytadan boshlashingiz mumkin.';
+  $('answer-list').append(summary);
+  $('feedback').hidden = true;
+  $('check-button').disabled = false;
+  $('check-button').innerHTML = 'Qayta boshlash <span>↻</span>';
+}
 function checkAnswer() {
+  if (exerciseCompleted) {
+    questionIndex = 0;
+    renderQuestion();
+    return;
+  }
   if (answered) {
-    if (questionIndex < exercises[0].questions.length - 1) { questionIndex++; renderQuestion(); }
-    else { questionIndex = 0; renderQuestion(); }
+    if (questionIndex < exercises[0].questions.length - 1) {
+      questionIndex++;
+      renderQuestion();
+    } else {
+      showCompletion();
+    }
     return;
   }
   if (selectedAnswer === null) return;
@@ -101,7 +126,7 @@ function checkAnswer() {
   progress.today += 1;
   saveProgress();
   updateStats();
-  $('check-button').innerHTML = questionIndex === exercises[0].questions.length - 1 ? 'Boshidan boshlash <span>↻</span>' : 'Keyingi savol <span>→</span>';
+  $('check-button').innerHTML = questionIndex === exercises[0].questions.length - 1 ? 'Mashqni yakunlash <span>→</span>' : 'Keyingi savol <span>→</span>';
 }
 $('check-button').addEventListener('click', checkAnswer);
 updateStats();
