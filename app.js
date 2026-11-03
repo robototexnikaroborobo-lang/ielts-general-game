@@ -1,30 +1,23 @@
-const exercises = [{
-  title: 'Community Centre Notice',
-  passage: 'RIVERSIDE COMMUNITY CENTRE — WEEKEND WORKSHOPS\n\nThe centre is running a series of Saturday workshops throughout June. The photography workshop takes place from 10:00 a.m. to 12:30 p.m. and is suitable for beginners. Participants should bring their own camera; a limited number of cameras can be borrowed if requested when booking.\n\nThe cooking class runs from 1:30 p.m. to 4:00 p.m. Ingredients are provided, but please tell us about any food allergies at least three days before the class. Both workshops cost £18. Members receive a 20% discount. To reserve a place, email bookings@riversidecentre.example or visit the reception desk. Cancellations made less than 24 hours before a workshop are not refundable.',
-  source: 'Material: original practice text written for IELTS Quest. It is not taken from a past IELTS test. Permission status: original.',
-  questions: [
-    { text: 'What should someone do if they need to borrow a camera?', options: ['Pay an additional camera fee', 'Arrive before 9:00 a.m.', 'Contact the cooking instructor', 'Ask for one when making the booking'], answer: 3, explain: 'Matnda kamera kerak bo‘lsa, uni bron qilish paytida so‘rash kerakligi aytilgan.' },
-    { text: 'When should participants report a food allergy?', options: ['At least three days in advance', 'On the day of the class', 'When paying for the workshop', 'Within 24 hours of booking'], answer: 0, explain: 'Matnda allergiyalar haqida mashg‘ulotdan kamida uch kun oldin xabar berish so‘raladi.' },
-    { text: 'How much does a centre member pay for one workshop?', options: ['£3.60', '£18.00', '£14.40', '£20.00'], answer: 2, explain: '£18 narxdan 20% chegirma — £3.60. To‘lanadigan summa £14.40.' },
-    { text: 'Which statement is true about the workshops?', options: ['Both workshops are held in the morning.', 'Only members may book a place.', 'Late cancellations receive a full refund.', 'The centre supplies ingredients for the cooking class.'], answer: 3, explain: 'Matnda cooking class uchun masalliqlar berilishi yozilgan.' },
-    { text: 'How can a participant reserve a place?', options: ['By sending an email or visiting reception', 'By calling the instructor', 'By completing an online form only', 'By paying at the workshop'], answer: 0, explain: 'Joyni email yuborib yoki qabulxonaga borib band qilish mumkin.' }
-  ]
-}];
-
 const $ = (id) => document.getElementById(id);
 const storageKey = 'ielts-quest-progress-v1';
+const exercises = window.IELTS_QUESTION_BANK || [];
 let progress = loadProgress();
+let exerciseIndex = 0;
 let questionIndex = 0;
 let selectedAnswer = null;
 let answered = false;
 let exerciseCompleted = false;
 
 function loadProgress() {
-  try { return JSON.parse(localStorage.getItem(storageKey)) || { score: 0, correct: 0, today: 0, lastDate: '', streak: 0, completed: [] }; }
-  catch { return { score: 0, correct: 0, today: 0, lastDate: '', streak: 0, completed: [] }; }
+  const defaults = { score: 0, correct: 0, today: 0, lastDate: '', streak: 0, completed: [] };
+  try { return { ...defaults, ...(JSON.parse(localStorage.getItem(storageKey)) || {}) }; }
+  catch { return defaults; }
 }
-function saveProgress() { localStorage.setItem(storageKey, JSON.stringify(progress)); }
+function saveProgress() {
+  try { localStorage.setItem(storageKey, JSON.stringify(progress)); } catch { /* Storage may be unavailable in private browsing. */ }
+}
 function dayStamp() { return new Date().toLocaleDateString('en-CA'); }
+function currentExercise() { return exercises[exerciseIndex]; }
 function updateStats() {
   const today = dayStamp();
   if (progress.lastDate !== today) {
@@ -39,13 +32,29 @@ function updateStats() {
   $('today-progress').textContent = `${Math.min(progress.today, 5)} / 5`;
   $('streak-count').textContent = `${progress.streak} kun`;
 }
+function renderExerciseOptions() {
+  const select = $('exercise-select');
+  select.replaceChildren();
+  exercises.forEach((exercise, index) => {
+    const option = document.createElement('option');
+    option.value = String(index);
+    option.textContent = exercise.title;
+    select.append(option);
+  });
+  select.addEventListener('change', () => {
+    exerciseIndex = Number(select.value);
+    questionIndex = 0;
+    renderQuestion();
+  });
+}
 function renderQuestion() {
-  const exercise = exercises[0];
+  const exercise = currentExercise();
+  if (!exercise || !exercise.questions.length) return;
   const question = exercise.questions[questionIndex];
   exerciseCompleted = false;
   $('passage-title').textContent = exercise.title;
   $('passage-text').textContent = exercise.passage;
-  $('source-note').textContent = exercise.source;
+  $('source-note').textContent = `Manba: ${exercise.source.description} Ruxsat: ${exercise.source.permission}.`;
   $('question-count').textContent = `${questionIndex + 1} / ${exercise.questions.length}`;
   $('question-label').textContent = `SAVOL ${questionIndex + 1}`;
   $('question-text').textContent = question.text;
@@ -80,13 +89,14 @@ function renderQuestion() {
 }
 function showCompletion() {
   exerciseCompleted = true;
+  const exercise = currentExercise();
   $('question-label').textContent = 'MASHQ YAKUNLANDI';
-  $('question-text').textContent = 'Barakalla! Barcha 5 ta savolni ishlab chiqdingiz.';
-  $('question-count').textContent = '5 / 5';
+  $('question-text').textContent = `Barakalla! “${exercise.title}” mashqidagi barcha savollarni ishlab chiqdingiz.`;
+  $('question-count').textContent = `${exercise.questions.length} / ${exercise.questions.length}`;
   $('answer-list').replaceChildren();
   const summary = document.createElement('p');
   summary.className = 'completion-summary';
-  summary.textContent = 'Natijangiz saqlandi. Xohlasangiz, mashqni qaytadan boshlashingiz mumkin.';
+  summary.textContent = 'Natijangiz saqlandi. Boshqa Reading mashqini yuqoridagi ro‘yxatdan tanlashingiz yoki qaytadan boshlashingiz mumkin.';
   $('answer-list').append(summary);
   $('feedback').hidden = true;
   $('check-button').disabled = false;
@@ -98,8 +108,9 @@ function checkAnswer() {
     renderQuestion();
     return;
   }
+  const exercise = currentExercise();
   if (answered) {
-    if (questionIndex < exercises[0].questions.length - 1) {
+    if (questionIndex < exercise.questions.length - 1) {
       questionIndex++;
       renderQuestion();
     } else {
@@ -109,26 +120,33 @@ function checkAnswer() {
   }
   if (selectedAnswer === null) return;
   answered = true;
-  const q = exercises[0].questions[questionIndex];
-  const right = selectedAnswer === q.answer;
+  const question = exercise.questions[questionIndex];
+  const right = selectedAnswer === question.answer;
   document.querySelectorAll('.answer-option').forEach((el, index) => {
     el.disabled = true;
-    if (index === q.answer) el.classList.add('correct');
+    if (index === question.answer) el.classList.add('correct');
     else if (index === selectedAnswer) el.classList.add('incorrect');
   });
   const feedback = $('feedback');
   feedback.hidden = false;
   feedback.className = `feedback ${right ? 'good' : 'bad'}`;
-  feedback.textContent = `${right ? 'To‘g‘ri! ' : 'Hali emas. '} ${q.explain}`;
+  feedback.textContent = `${right ? 'To‘g‘ri! ' : 'Hali emas. '}${question.explain}`;
   if (right) { progress.score += 10; progress.correct += 1; }
   const today = dayStamp();
-  if (progress.lastDate !== today) { progress.today = 0; progress.streak += 1; progress.lastDate = today; }
+  if (progress.lastDate !== today) {
+    const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA');
+    progress.streak = progress.lastDate === yesterday ? progress.streak + 1 : 1;
+    progress.today = 0;
+    progress.lastDate = today;
+  }
   progress.today += 1;
   saveProgress();
   updateStats();
-  $('check-button').innerHTML = questionIndex === exercises[0].questions.length - 1 ? 'Mashqni yakunlash <span>→</span>' : 'Keyingi savol <span>→</span>';
+  $('check-button').innerHTML = questionIndex === exercise.questions.length - 1 ? 'Mashqni yakunlash <span>→</span>' : 'Keyingi savol <span>→</span>';
 }
+
 $('check-button').addEventListener('click', checkAnswer);
+renderExerciseOptions();
 updateStats();
 renderQuestion();
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
