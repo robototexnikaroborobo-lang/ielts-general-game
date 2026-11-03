@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102a43">
+  <meta name="description" content="IELTS General Training uchun mobil va kompyuterga mos mashq ilovasi.">
+  <title>IELTS Quest — General Training</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#home" aria-label="IELTS Quest bosh sahifa"><span class="brand-mark">IQ</span><span>IELTS <strong>Quest</strong></span></a>
+    <div class="top-meta"><span class="mode-pill">GENERAL TRAINING</span><button class="profile" aria-label="Profil">👤</button></div>
+  </header>
+
+  <main class="layout" id="home">
+    <aside class="sidebar" aria-label="Asosiy menyu">
+      <p class="side-label">O‘RGANISH</p>
+      <button class="nav-item active" data-section="reading"><span>▤</span> Reading <span class="nav-tag">BETA</span></button>
+      <button class="nav-item upcoming" disabled><span>◖</span> Listening <span class="soon">TEZ KUNDA</span></button>
+      <button class="nav-item upcoming" disabled><span>✎</span> Writing <span class="soon">TEZ KUNDA</span></button>
+      <button class="nav-item upcoming" disabled><span>◉</span> Speaking <span class="soon">TEZ KUNDA</span></button>
+      <div class="sidebar-note"><span>💡</span><p>Oz-ozdan, muntazam mashq qiling. Har bir to‘g‘ri javob sizni maqsadingizga yaqinlashtiradi.</p></div>
+    </aside>
+
+    <section class="content">
+      <div class="welcome-row">
+        <div><p class="eyebrow">SIZNING TAYYORGARLIGINGIZ</p><h1>Salom! Mashqqa tayyormisiz?</h1><p class="subhead">Bugun kichik bir qadam tashlang — natija vaqt o‘tib yig‘iladi.</p></div>
+        <div class="streak-card"><span class="streak-icon">🔥</span><div><strong id="streak-count">0 kun</strong><small>ketma-ket mashq</small></div></div>
+      </div>
+
+      <section class="stats" aria-label="Natijalar">
+        <article class="stat-card"><span class="stat-icon blue">✦</span><div><small>JAMI BALL</small><strong id="total-score">0</strong></div></article>
+        <article class="stat-card"><span class="stat-icon green">✓</span><div><small>TO‘G‘RI JAVOBLAR</small><strong id="correct-total">0</strong></div></article>
+        <article class="stat-card"><span class="stat-icon orange">◷</span><div><small>BUGUNGI MAQSAD</small><strong id="today-progress">0 / 5</strong></div></article>
+      </section>
+
+      <div class="section-heading"><div><p class="eyebrow">GENERAL TRAINING</p><h2>Reading mashqi</h2></div><span class="level-pill">Boshlang‘ich</span></div>
+
+      <section class="exercise-card" id="exercise-card">
+        <div class="exercise-top"><div><span class="exercise-label">READING · QISQA MATN</span><h3 id="passage-title">Community Centre Notice</h3></div><span class="question-count" id="question-count">1 / 5</span></div>
+        <div class="passage-box"><p id="passage-text"></p><div class="source-note"><span>ⓘ</span><span id="source-note"></span></div></div>
+        <div class="question-area"><p class="question-label" id="question-label">SAVOL 1</p><h4 id="question-text"></h4><div class="answers" id="answer-list" role="group" aria-label="Javob variantlari"></div><div class="feedback" id="feedback" aria-live="polite" hidden></div></div>
+        <div class="exercise-actions"><span class="keyboard-hint">Javobni tanlang, so‘ng tekshiring</span><button class="primary-button" id="check-button" disabled>Javobni tekshirish <span>→</span></button></div>
+      </section>
+      <p class="disclaimer">Ushbu boshlang‘ich mashq IELTS formatiga mos ravishda mustaqil yozilgan; rasmiy yoki avvalgi IELTS testidan ko‘chirilmagan.</p>
+      <footer>IELTS Quest · O‘rganish uchun yaratilgan mustaqil loyiha</footer>
+    </section>
+  </main>
+  <script src="app.js" defer></script>
+</body>
+</html>

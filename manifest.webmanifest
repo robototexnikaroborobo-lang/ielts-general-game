@@ -1,0 +1,11 @@
+{
+  "name": "IELTS Quest — General Training",
+  "short_name": "IELTS Quest",
+  "description": "IELTS General Training uchun mashq ilovasi",
+  "lang": "uz",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f5f8fc",
+  "theme_color": "#102a43",
+  "icons": []
+}
