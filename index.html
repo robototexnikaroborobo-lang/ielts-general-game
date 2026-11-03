@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#102a43">
-  <meta name="description" content="IELTS General Training uchun interaktiv Reading mashqlari.">
-  <title>IELTS Quest — Reading Practice</title>
+  <meta name="description" content="IELTS General Training uchun interaktiv Reading mock mashqlari.">
+  <title>IELTS Quest — Reading Mock</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="extra.css">
@@ -14,31 +14,29 @@
 <body class="exam-page">
   <header class="exam-header">
     <a class="brand" href="#home" aria-label="IELTS Quest bosh sahifa"><span class="brand-mark">IQ</span><span>IELTS <strong>Quest</strong></span></a>
-    <div class="exam-header-center"><span class="exam-section-label">IELTS GENERAL TRAINING</span><span class="exam-divider">/</span><strong>READING PRACTICE</strong></div>
+    <div class="exam-header-center"><span class="exam-section-label">GENERAL TRAINING</span><span class="exam-divider">/</span><strong>READING MOCK</strong></div>
     <div class="timer-wrap"><span class="timer-caption">QOLGAN VAQT</span><strong id="exam-timer" aria-live="off">20:00</strong><button id="timer-toggle" class="timer-toggle" type="button">Pauza</button></div>
   </header>
   <main class="exam-shell" id="home">
     <div class="exam-controls">
-      <label class="exercise-picker-label" for="exercise-select">MATNNI TANLANG<select id="exercise-select" class="exercise-picker" aria-label="Reading matnini tanlang"></select></label>
+      <label class="exercise-picker-label" for="exercise-select">READING MATNINI TANLANG<select id="exercise-select" class="exercise-picker" aria-label="Reading matnini tanlang"></select></label>
       <div class="exam-progress"><span id="answered-count">0 / 0 javob berildi</span><div class="progress-track"><span id="progress-fill"></span></div></div>
       <button id="submit-exam" class="submit-button" type="button">Testni yakunlash</button>
     </div>
-    <section class="exam-titlebar"><div><span class="exam-kicker">READING · GENERAL TRAINING</span><h1 id="passage-title">Reading passage</h1></div><span class="instruction-pill">Matnni o‘qing va savollarga javob bering</span></section>
+    <section class="exam-titlebar"><div><span class="exam-kicker">IELTS-INSPIRED PRACTICE · READING</span><h1 id="passage-title">Reading passage</h1></div><span class="instruction-pill">Matn va barcha savollar bir ekranda</span></section>
     <div class="exam-workspace">
       <section class="passage-panel" aria-label="Reading matni">
         <div class="panel-heading"><div><span class="panel-overline">READING PASSAGE</span><h2 id="passage-heading">Matn</h2></div><button id="text-size" class="text-size" type="button" aria-label="Matn shriftini kattalashtirish">A⁺</button></div>
         <article class="passage-content" id="passage-text"></article>
         <div class="passage-source" id="source-note"></div>
       </section>
-      <section class="question-panel" aria-label="Savollar">
-        <div class="question-panel-head"><div><span class="panel-overline">SAVOLLAR</span><span id="question-count" class="question-count">1 / 5</span></div><div class="nav-help">Savolga o‘tish uchun raqamni bosing</div></div>
-        <div class="question-nav" id="question-nav" aria-label="Savol navigatsiyasi"></div>
-        <div class="question-body" id="question-body"><div class="question-instruction" id="question-instruction"></div><p class="question-label" id="question-label">SAVOL 1</p><h3 id="question-text"></h3><div class="answers" id="answer-list" role="group" aria-label="Javob variantlari"></div></div>
-        <div class="answer-feedback" id="feedback" aria-live="polite" hidden></div>
-        <div class="question-footer"><button id="prev-question" class="secondary-button" type="button">← Oldingi</button><span id="question-status" class="question-status">Javob tanlanmagan</span><button id="next-question" class="primary-button" type="button">Keyingi →</button></div>
+      <section class="question-panel full-mock-panel" aria-label="Barcha savollar">
+        <div class="question-panel-head"><div><span class="panel-overline">BARCHA SAVOLLAR</span><span id="question-count" class="question-count">0 savol</span></div><span class="nav-help">Raqamni bosing — savolga o‘tadi</span></div>
+        <nav class="question-nav" id="question-nav" aria-label="Savol navigatsiyasi"></nav>
+        <div class="all-questions" id="all-questions"></div>
       </section>
     </div>
-    <footer class="exam-footer"><span>IELTS Quest · Mustaqil tayyorgarlik mashqi</span><span class="rights-note">Material manbasi va ruxsat holati har bir mashqda ko‘rsatiladi.</span></footer>
+    <footer class="exam-footer"><span>IELTS Quest · Mustaqil tayyorgarlik mashqi</span><span class="rights-note">Rasmiy IELTS imtihoni emas. Mashq vaqti va formati passagega qarab farq qilishi mumkin.</span></footer>
   </main>
   <dialog id="submit-dialog" class="submit-dialog"><form method="dialog"><button class="dialog-close" aria-label="Yopish">×</button><span class="exam-kicker">TESTNI YAKUNLASH</span><h2>Javoblaringizni yuborasizmi?</h2><p id="submit-summary"></p><div class="dialog-actions"><button class="secondary-button" value="cancel">Davom etish</button><button id="confirm-submit" class="submit-button" value="submit">Yakunlash</button></div></form></dialog>
   <dialog id="results-dialog" class="results-dialog"><div class="results-head"><span class="exam-kicker">NATIJA</span><button id="close-results" class="dialog-close" aria-label="Yopish">×</button></div><h2 id="results-title">Mashq yakunlandi</h2><div class="result-score" id="result-score"></div><p id="result-message"></p><div class="result-review" id="result-review"></div><button id="restart-exercise" class="submit-button">Qayta ishlash</button></dialog>
