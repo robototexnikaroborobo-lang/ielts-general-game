@@ -56,7 +56,7 @@ function renderQuestion() {
   $('passage-text').textContent = exercise.passage;
   $('source-note').textContent = `Manba: ${exercise.source.description} Ruxsat: ${exercise.source.permission}.`;
   $('question-count').textContent = `${questionIndex + 1} / ${exercise.questions.length}`;
-  $('question-label').textContent = `SAVOL ${questionIndex + 1}`;
+  $('question-label').textContent = `${question.answerFormat ? `${question.answerFormat} · ` : ''}SAVOL ${questionIndex + 1}`;
   $('question-text').textContent = question.text;
   $('feedback').hidden = true;
   $('feedback').className = 'feedback';
@@ -65,27 +65,41 @@ function renderQuestion() {
   answered = false;
   $('check-button').disabled = true;
   $('check-button').innerHTML = 'Javobni tekshirish <span>→</span>';
-  question.options.forEach((option, index) => {
-    const button = document.createElement('button');
-    button.className = 'answer-option';
-    button.type = 'button';
-    button.setAttribute('aria-pressed', 'false');
-    const letter = document.createElement('span');
-    letter.className = 'answer-letter';
-    letter.textContent = String.fromCharCode(65 + index);
-    const text = document.createElement('span');
-    text.textContent = option;
-    button.append(letter, text);
-    button.addEventListener('click', () => {
-      if (answered) return;
-      selectedAnswer = index;
-      document.querySelectorAll('.answer-option').forEach((el) => { el.classList.remove('selected'); el.setAttribute('aria-pressed', 'false'); });
-      button.classList.add('selected');
-      button.setAttribute('aria-pressed', 'true');
-      $('check-button').disabled = false;
+
+  if (question.acceptedAnswers) {
+    const input = document.createElement('input');
+    input.className = 'text-answer';
+    input.id = 'text-answer-input';
+    input.type = 'text';
+    input.autocomplete = 'off';
+    input.setAttribute('aria-label', 'Javobingizni yozing');
+    input.placeholder = 'Javobingizni yozing…';
+    input.addEventListener('input', () => { $('check-button').disabled = !input.value.trim(); });
+    input.addEventListener('keydown', (event) => { if (event.key === 'Enter' && input.value.trim()) checkAnswer(); });
+    $('answer-list').append(input);
+  } else {
+    question.options.forEach((option, index) => {
+      const button = document.createElement('button');
+      button.className = 'answer-option';
+      button.type = 'button';
+      button.setAttribute('aria-pressed', 'false');
+      const letter = document.createElement('span');
+      letter.className = 'answer-letter';
+      letter.textContent = question.type === 'paragraph-matching' ? option : String.fromCharCode(65 + index);
+      const text = document.createElement('span');
+      text.textContent = option;
+      button.append(letter, text);
+      button.addEventListener('click', () => {
+        if (answered) return;
+        selectedAnswer = index;
+        document.querySelectorAll('.answer-option').forEach((el) => { el.classList.remove('selected'); el.setAttribute('aria-pressed', 'false'); });
+        button.classList.add('selected');
+        button.setAttribute('aria-pressed', 'true');
+        $('check-button').disabled = false;
+      });
+      $('answer-list').append(button);
     });
-    $('answer-list').append(button);
-  });
+  }
 }
 function showCompletion() {
   exerciseCompleted = true;
@@ -102,6 +116,9 @@ function showCompletion() {
   $('check-button').disabled = false;
   $('check-button').innerHTML = 'Qayta boshlash <span>↻</span>';
 }
+function normalizeAnswer(value) {
+  return value.trim().toLocaleLowerCase().replace(/[.,!?;:]/g, '').replace(/\s+/g, ' ');
+}
 function checkAnswer() {
   if (exerciseCompleted) {
     questionIndex = 0;
@@ -110,27 +127,33 @@ function checkAnswer() {
   }
   const exercise = currentExercise();
   if (answered) {
-    if (questionIndex < exercise.questions.length - 1) {
-      questionIndex++;
-      renderQuestion();
-    } else {
-      showCompletion();
-    }
+    if (questionIndex < exercise.questions.length - 1) { questionIndex++; renderQuestion(); }
+    else showCompletion();
     return;
   }
-  if (selectedAnswer === null) return;
-  answered = true;
   const question = exercise.questions[questionIndex];
-  const right = selectedAnswer === question.answer;
-  document.querySelectorAll('.answer-option').forEach((el, index) => {
-    el.disabled = true;
-    if (index === question.answer) el.classList.add('correct');
-    else if (index === selectedAnswer) el.classList.add('incorrect');
-  });
+  let right;
+  if (question.acceptedAnswers) {
+    const input = $('text-answer-input');
+    if (!input || !input.value.trim()) return;
+    right = question.acceptedAnswers.some((answer) => normalizeAnswer(answer) === normalizeAnswer(input.value));
+    input.disabled = true;
+    input.classList.add(right ? 'correct' : 'incorrect');
+  } else {
+    if (selectedAnswer === null) return;
+    right = selectedAnswer === question.answer;
+    document.querySelectorAll('.answer-option').forEach((el, index) => {
+      el.disabled = true;
+      if (index === question.answer) el.classList.add('correct');
+      else if (index === selectedAnswer) el.classList.add('incorrect');
+    });
+  }
+  answered = true;
   const feedback = $('feedback');
   feedback.hidden = false;
   feedback.className = `feedback ${right ? 'good' : 'bad'}`;
-  feedback.textContent = `${right ? 'To‘g‘ri! ' : 'Hali emas. '}${question.explain}`;
+  const answerText = question.acceptedAnswers ? ` To‘g‘ri javob: ${question.acceptedAnswers[0]}.` : '';
+  feedback.textContent = `${right ? 'To‘g‘ri! ' : 'Hali emas. '}${question.explain}${right ? '' : answerText}`;
   if (right) { progress.score += 10; progress.correct += 1; }
   const today = dayStamp();
   if (progress.lastDate !== today) {
