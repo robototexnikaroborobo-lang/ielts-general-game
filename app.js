@@ -1,85 +1,92 @@
 const $ = (id) => document.getElementById(id);
 const storageKey = 'ielts-quest-progress-v1';
 const exercises = window.IELTS_QUESTION_BANK || [];
+const FULL_MOCK = 'all';
 let exerciseIndex = 0;
+let fullMock = true;
 let responses = {};
 let submitted = false;
-let secondsLeft = 20 * 60;
+let secondsLeft = 60 * 60;
 let timerInterval = null;
 let timerPaused = false;
 let enlargedText = false;
 
-function currentExercise() { return exercises[exerciseIndex]; }
-function responseKey(question) { return `${currentExercise().id}:${question.id}`; }
+function activeExercises() { return fullMock ? exercises : [exercises[exerciseIndex]]; }
+function allQuestions() {
+  return activeExercises().flatMap((exercise) => exercise.questions.map((question) => ({ exercise, question })));
+}
+function responseKey(exercise, question) { return `${exercise.id}:${question.id}`; }
 function normalizeAnswer(value) { return String(value || '').trim().toLocaleLowerCase().replace(/[.,!?;:]/g, '').replace(/\s+/g, ' '); }
-function selectedResponse(question) { return responses[responseKey(question)]; }
-function hasResponse(question) {
-  const value = selectedResponse(question);
+function selectedResponse(exercise, question) { return responses[responseKey(exercise, question)]; }
+function hasResponse(exercise, question) {
+  const value = selectedResponse(exercise, question);
   return value !== undefined && value !== null && String(value).trim() !== '';
+}
+function resetAttempt() {
+  responses = {};
+  submitted = false;
+  timerPaused = false;
+  secondsLeft = fullMock ? 60 * 60 : 20 * 60;
+  $('timer-toggle').textContent = 'Pauza';
+  updateTimer();
+  renderMock();
+  startTimer();
 }
 function renderExerciseOptions() {
   const select = $('exercise-select');
+  const full = document.createElement('option');
+  full.value = FULL_MOCK;
+  full.textContent = `To‘liq Reading mock · barcha ${exercises.length} ta matn`;
+  select.append(full);
   exercises.forEach((exercise, index) => {
     const option = document.createElement('option');
     option.value = String(index);
-    option.textContent = exercise.title;
+    option.textContent = `Alohida mashq · ${exercise.title}`;
     select.append(option);
   });
+  select.value = FULL_MOCK;
   select.addEventListener('change', () => {
-    exerciseIndex = Number(select.value);
-    responses = {};
-    submitted = false;
-    timerPaused = false;
-    secondsLeft = 20 * 60;
-    $('timer-toggle').textContent = 'Pauza';
-    updateTimer();
-    renderMock();
-    startTimer();
+    if (Object.keys(responses).length && !submitted && !window.confirm('Javoblaringiz o‘chadi. Boshqa mock turiga o‘tasizmi?')) {
+      select.value = fullMock ? FULL_MOCK : String(exerciseIndex);
+      return;
+    }
+    fullMock = select.value === FULL_MOCK;
+    if (!fullMock) exerciseIndex = Number(select.value);
+    resetAttempt();
   });
 }
-function renderPassage(exercise) {
-  $('passage-title').textContent = exercise.title;
-  $('passage-heading').textContent = exercise.title;
+function renderPassages() {
+  const groups = activeExercises();
+  $('passage-title').textContent = fullMock ? `Full Reading Mock · ${groups.length} ta matn` : groups[0].title;
+  $('passage-heading').textContent = fullMock ? 'Barcha matnlar' : groups[0].title;
   const passage = $('passage-text');
   passage.replaceChildren();
-  exercise.passage.split(/\n\s*\n/).forEach((block) => {
-    const paragraph = document.createElement('p');
-    paragraph.textContent = block;
-    passage.append(paragraph);
+  groups.forEach((exercise, exerciseIndexInMock) => {
+    const section = document.createElement('section');
+    section.className = 'mock-passage';
+    const heading = document.createElement('h3');
+    heading.className = 'mock-passage-title';
+    heading.textContent = fullMock ? `PASSAGE ${exerciseIndexInMock + 1} · ${exercise.title}` : exercise.title;
+    section.append(heading);
+    exercise.passage.split(/\n\s*\n/).forEach((block) => {
+      const paragraph = document.createElement('p');
+      paragraph.textContent = block;
+      section.append(paragraph);
+    });
+    passage.append(section);
   });
-  $('source-note').textContent = `Manba: ${exercise.source.description} Ruxsat: ${exercise.source.permission}.`;
+  const sources = groups.map((exercise) => `${exercise.title}: ${exercise.source.description} Ruxsat: ${exercise.source.permission}.`);
+  $('source-note').textContent = sources.join(' ');
   passage.classList.toggle('large-text', enlargedText);
   $('text-size').textContent = enlargedText ? 'A−' : 'A⁺';
 }
-function renderQuestionNav() {
-  const exercise = currentExercise();
-  const nav = $('question-nav');
-  nav.replaceChildren();
-  exercise.questions.forEach((question, index) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = `question-nav-button${hasResponse(question) ? ' answered' : ''}`;
-    button.textContent = String(index + 1);
-    button.setAttribute('aria-label', `Savol ${index + 1}${hasResponse(question) ? ', javob berilgan' : ', javob berilmagan'}`);
-    button.disabled = submitted;
-    button.addEventListener('click', () => document.getElementById(`question-${index + 1}`).scrollIntoView({ behavior: 'smooth', block: 'center' }));
-    nav.append(button);
-  });
-  const done = exercise.questions.filter(hasResponse).length;
-  $('answered-count').textContent = `${done} / ${exercise.questions.length} javob berildi`;
-  $('progress-fill').style.width = `${exercise.questions.length ? done / exercise.questions.length * 100 : 0}%`;
+function updateProgress() {
+  const questions = allQuestions();
+  const done = questions.filter(({ exercise, question }) => hasResponse(exercise, question)).length;
+  $('answered-count').textContent = `${done} / ${questions.length} javob berildi`;
+  $('progress-fill').style.width = `${questions.length ? done / questions.length * 100 : 0}%`;
 }
-function updateQuestionNavStatus(question) {
-  const index = currentExercise().questions.indexOf(question);
-  const button = $('question-nav').children[index];
-  if (!button) return;
-  button.classList.toggle('answered', hasResponse(question));
-  button.setAttribute('aria-label', `Savol ${index + 1}${hasResponse(question) ? ', javob berilgan' : ', javob berilmagan'}`);
-  const done = currentExercise().questions.filter(hasResponse).length;
-  $('answered-count').textContent = `${done} / ${currentExercise().questions.length} javob berildi`;
-  $('progress-fill').style.width = `${done / currentExercise().questions.length * 100}%`;
-}
-function makeQuestionCard(question, index) {
+function makeQuestionCard(exercise, question, index) {
   const card = document.createElement('article');
   card.className = 'mock-question';
   card.id = `question-${index + 1}`;
@@ -100,7 +107,7 @@ function makeQuestionCard(question, index) {
   card.append(top);
   const choices = document.createElement('div');
   choices.className = question.acceptedAnswers ? 'mock-answer-area text-answer-area' : 'mock-answer-area';
-  const saved = selectedResponse(question);
+  const saved = selectedResponse(exercise, question);
   if (question.acceptedAnswers) {
     const input = document.createElement('input');
     input.className = 'text-answer';
@@ -110,7 +117,11 @@ function makeQuestionCard(question, index) {
     input.setAttribute('aria-label', `Savol ${index + 1} javobi`);
     input.value = saved || '';
     input.disabled = submitted;
-    input.addEventListener('input', () => { responses[responseKey(question)] = input.value; updateQuestionNavStatus(question); });
+    input.addEventListener('input', () => {
+      responses[responseKey(exercise, question)] = input.value;
+      updateNavButton(index, exercise, question);
+      updateProgress();
+    });
     choices.append(input);
   } else {
     question.options.forEach((option, optionIndex) => {
@@ -128,14 +139,18 @@ function makeQuestionCard(question, index) {
       button.addEventListener('click', () => {
         if (submitted) return;
         const wasSelected = button.classList.contains('selected');
-        choices.querySelectorAll('.answer-option').forEach((item) => { item.classList.remove('selected'); item.setAttribute('aria-pressed', 'false'); });
-        if (wasSelected) delete responses[responseKey(question)];
+        choices.querySelectorAll('.answer-option').forEach((item) => {
+          item.classList.remove('selected');
+          item.setAttribute('aria-pressed', 'false');
+        });
+        if (wasSelected) delete responses[responseKey(exercise, question)];
         else {
-          responses[responseKey(question)] = optionIndex;
+          responses[responseKey(exercise, question)] = optionIndex;
           button.classList.add('selected');
           button.setAttribute('aria-pressed', 'true');
         }
-        updateQuestionNavStatus(question);
+        updateNavButton(index, exercise, question);
+        updateProgress();
       });
       choices.append(button);
     });
@@ -143,20 +158,47 @@ function makeQuestionCard(question, index) {
   card.append(choices);
   return card;
 }
+function updateNavButton(index, exercise, question) {
+  const button = $('question-nav').children[index];
+  if (!button) return;
+  const answered = hasResponse(exercise, question);
+  button.classList.toggle('answered', answered);
+  button.setAttribute('aria-label', `Savol ${index + 1}${answered ? ', javob berilgan' : ', javob berilmagan'}`);
+}
 function renderMock() {
-  const exercise = currentExercise();
-  if (!exercise) return;
-  renderPassage(exercise);
-  renderQuestionNav();
-  $('question-count').textContent = `${exercise.questions.length} ta savol`;
+  const questions = allQuestions();
+  if (!questions.length) return;
+  renderPassages();
+  const nav = $('question-nav');
+  nav.replaceChildren();
   const container = $('all-questions');
   container.replaceChildren();
-  exercise.questions.forEach((question, index) => container.append(makeQuestionCard(question, index)));
+  let previousExercise = null;
+  questions.forEach(({ exercise, question }, index) => {
+    if (fullMock && exercise !== previousExercise) {
+      const heading = document.createElement('h2');
+      heading.className = 'question-passage-heading';
+      heading.textContent = `PASSAGE ${activeExercises().indexOf(exercise) + 1} · ${exercise.title}`;
+      container.append(heading);
+      previousExercise = exercise;
+    }
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `question-nav-button${hasResponse(exercise, question) ? ' answered' : ''}`;
+    button.textContent = String(index + 1);
+    button.setAttribute('aria-label', `Savol ${index + 1}${hasResponse(exercise, question) ? ', javob berilgan' : ', javob berilmagan'}`);
+    button.disabled = submitted;
+    button.addEventListener('click', () => document.getElementById(`question-${index + 1}`).scrollIntoView({ behavior: 'smooth', block: 'center' }));
+    nav.append(button);
+    container.append(makeQuestionCard(exercise, question, index));
+  });
+  $('question-count').textContent = `${questions.length} ta savol`;
   $('submit-exam').disabled = submitted;
+  updateProgress();
 }
 function openSubmitDialog() {
   if (submitted || $('submit-dialog').open) return;
-  const unanswered = currentExercise().questions.filter((question) => !hasResponse(question)).length;
+  const unanswered = allQuestions().filter(({ exercise, question }) => !hasResponse(exercise, question)).length;
   $('submit-summary').textContent = unanswered ? `${unanswered} ta savol javobsiz qolgan. Shunga qaramay mashqni yakunlaysizmi?` : 'Barcha savollarga javob berdingiz. Mashqni yakunlashga tayyormisiz?';
   $('submit-dialog').showModal();
 }
@@ -164,19 +206,22 @@ function submitExercise() {
   if (submitted) return;
   submitted = true;
   clearInterval(timerInterval);
-  const exercise = currentExercise();
+  const questions = allQuestions();
   let correct = 0;
   let answeredCount = 0;
-  exercise.questions.forEach((question) => {
-    if (!hasResponse(question)) return;
+  questions.forEach(({ exercise, question }) => {
+    if (!hasResponse(exercise, question)) return;
     answeredCount++;
-    const value = selectedResponse(question);
-    const isRight = question.acceptedAnswers ? question.acceptedAnswers.some((answer) => normalizeAnswer(answer) === normalizeAnswer(value)) : value === question.answer;
-    if (isRight) correct++;
+    const value = selectedResponse(exercise, question);
+    const right = question.acceptedAnswers
+      ? question.acceptedAnswers.some((answer) => normalizeAnswer(answer) === normalizeAnswer(value))
+      : value === question.answer;
+    if (right) correct++;
   });
-  const defaults = { score: 0, correct: 0, today: 0, lastDate: '', streak: 0 };
+  const storageDefaults = { score: 0, correct: 0, today: 0, lastDate: '', streak: 0 };
   let progress;
-  try { progress = { ...defaults, ...(JSON.parse(localStorage.getItem(storageKey)) || {}) }; } catch { progress = defaults; }
+  try { progress = { ...storageDefaults, ...(JSON.parse(localStorage.getItem(storageKey)) || {}) }; }
+  catch { progress = storageDefaults; }
   const today = new Date().toLocaleDateString('en-CA');
   if (progress.lastDate !== today) {
     const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA');
@@ -188,18 +233,22 @@ function submitExercise() {
   progress.correct += correct;
   progress.today += answeredCount;
   try { localStorage.setItem(storageKey, JSON.stringify(progress)); } catch { /* Continue without persistent stats. */ }
-  $('results-title').textContent = exercise.title;
-  $('result-score').textContent = `${correct} / ${exercise.questions.length}`;
+
+  const title = fullMock ? 'Full Reading Mock' : currentExerciseTitle();
+  $('results-title').textContent = title;
+  $('result-score').textContent = `${correct} / ${questions.length}`;
   $('result-message').textContent = `${answeredCount} ta savolga javob berdingiz. Har bir to‘g‘ri javob uchun 10 ball berildi.`;
   const review = $('result-review');
   review.replaceChildren();
-  exercise.questions.forEach((question, index) => {
+  questions.forEach(({ exercise, question }, index) => {
     const row = document.createElement('article');
     row.className = 'review-item';
     const title = document.createElement('strong');
-    title.textContent = `${index + 1}. ${question.text}`;
-    const value = selectedResponse(question);
-    const right = question.acceptedAnswers ? question.acceptedAnswers.some((answer) => normalizeAnswer(answer) === normalizeAnswer(value)) : value === question.answer;
+    title.textContent = `${index + 1}. ${fullMock ? `${exercise.title} — ` : ''}${question.text}`;
+    const value = selectedResponse(exercise, question);
+    const right = question.acceptedAnswers
+      ? question.acceptedAnswers.some((answer) => normalizeAnswer(answer) === normalizeAnswer(value))
+      : value === question.answer;
     const userAnswer = document.createElement('p');
     const userLabel = question.acceptedAnswers ? (value || 'Javob berilmagan') : (value === undefined ? 'Javob berilmagan' : question.options[value]);
     userAnswer.textContent = `Sizning javobingiz: ${userLabel}`;
@@ -214,6 +263,7 @@ function submitExercise() {
   renderMock();
   $('results-dialog').showModal();
 }
+function currentExerciseTitle() { return activeExercises()[0]?.title || 'Reading mashqi'; }
 function updateTimer() {
   const minutes = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
   const seconds = (secondsLeft % 60).toString().padStart(2, '0');
@@ -226,7 +276,7 @@ function startTimer() {
     if (timerPaused || submitted) return;
     secondsLeft = Math.max(0, secondsLeft - 1);
     updateTimer();
-    if (secondsLeft === 0) openSubmitDialog();
+    if (secondsLeft === 0) submitExercise();
   }, 1000);
 }
 $('submit-exam').addEventListener('click', openSubmitDialog);
@@ -243,14 +293,7 @@ $('text-size').addEventListener('click', () => {
 $('close-results').addEventListener('click', () => $('results-dialog').close());
 $('restart-exercise').addEventListener('click', () => {
   $('results-dialog').close();
-  responses = {};
-  submitted = false;
-  timerPaused = false;
-  secondsLeft = 20 * 60;
-  $('timer-toggle').textContent = 'Pauza';
-  updateTimer();
-  renderMock();
-  startTimer();
+  resetAttempt();
 });
 renderExerciseOptions();
 updateTimer();
