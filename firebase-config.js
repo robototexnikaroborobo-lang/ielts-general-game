@@ -1,5 +1,5 @@
 window.firebaseConfig = {
-  apiKey: "AIzaSyDQpRLs8Q--OHYw98qGxKiwbpR9Q9LmI",
+  apiKey: "AIzaSyDQpRLs8QgQ--OHYw08QqxKiwpbR9Q9LmI",
   authDomain: "ieltsuz-2026.firebaseapp.com",
   projectId: "ieltsuz-2026",
   storageBucket: "ieltsuz-2026.firebasestorage.app",
