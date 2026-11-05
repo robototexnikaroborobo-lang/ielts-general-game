@@ -16,6 +16,7 @@
     <a class="brand" href="#home" aria-label="IELTS Quest bosh sahifa"><span class="brand-mark">IQ</span><span>IELTS <strong>Quest</strong></span></a>
     <div class="exam-header-center"><span class="exam-section-label">GENERAL TRAINING</span><span class="exam-divider">/</span><strong>READING MOCK</strong></div>
     <div class="timer-wrap"><span class="timer-caption">QOLGAN VAQT</span><strong id="exam-timer" aria-live="off">60:00</strong><button id="timer-toggle" class="timer-toggle" type="button">Pauza</button></div>
+    <button id="auth-button" class="auth-button" type="button">Kirish</button>
   </header>
   <main class="exam-shell" id="home">
     <div class="exam-controls">
@@ -23,7 +24,7 @@
       <div class="exam-progress"><span id="answered-count">0 / 0 javob berildi</span><div class="progress-track"><span id="progress-fill"></span></div></div>
       <button id="submit-exam" class="submit-button" type="button">Testni yakunlash</button>
     </div>
-    <section class="exam-titlebar"><div><span class="exam-kicker">IELTS-INSPIRED PRACTICE · READING</span><h1 id="passage-title">Full Reading Mock</h1></div><span class="instruction-pill">Matnni o‘qing, barcha savollarga javob bering, so‘ng yakunlang</span></section>
+    <section class="exam-titlebar"><div><span class="exam-kicker">IELTS-INSPIRED PRACTICE · READING</span><h1 id="passage-title">Full Reading Mock</h1></div><span class="instruction-pill">Matnni o‘qib, ba’zi savollarga javob bering, so‘ngra natijani tekshiring.</span></section>
     <div class="exam-workspace">
       <section class="passage-panel" aria-label="Reading matnlari">
         <div class="panel-heading"><div><span class="panel-overline">READING PASSAGES</span><h2 id="passage-heading">Barcha matnlar</h2></div><button id="text-size" class="text-size" type="button" aria-label="Matn shriftini kattalashtirish">A⁺</button></div>
@@ -31,15 +32,58 @@
         <div class="passage-source" id="source-note"></div>
       </section>
       <section class="question-panel full-mock-panel" aria-label="Barcha savollar">
-        <div class="question-panel-head"><div><span class="panel-overline">BARCHA SAVOLLAR</span><span id="question-count" class="question-count">0 savol</span></div><span class="nav-help">Raqamni bosing — savolga o‘tadi</span></div>
+        <div class="question-panel-head"><div><span class="panel-overline">BARCHA SAVOLLAR</span><span id="question-count" class="question-count">0 savol</span></div><span class="nav-help">Raqamni bosib ko‘chib o‘ting</span></div>
         <nav class="question-nav" id="question-nav" aria-label="Savol navigatsiyasi"></nav>
         <div class="all-questions" id="all-questions"></div>
       </section>
     </div>
     <footer class="exam-footer"><span>IELTS Quest · Mustaqil tayyorgarlik mashqi</span><span class="rights-note">Bu rasmiy IELTS testi emas. Full mock savollar bankidagi matnlar asosida tuzilgan.</span></footer>
   </main>
-  <dialog id="submit-dialog" class="submit-dialog"><form method="dialog"><button class="dialog-close" aria-label="Yopish">×</button><span class="exam-kicker">TESTNI YAKUNLASH</span><h2>Javoblaringizni yuborasizmi?</h2><p id="submit-summary"></p><div class="dialog-actions"><button class="secondary-button" value="cancel">Davom etish</button><button id="confirm-submit" class="submit-button" value="submit">Yakunlash</button></div></form></dialog>
-  <dialog id="results-dialog" class="results-dialog"><div class="results-head"><span class="exam-kicker">NATIJA</span><button id="close-results" class="dialog-close" aria-label="Yopish">×</button></div><h2 id="results-title">Mock yakunlandi</h2><div class="result-score" id="result-score"></div><p id="result-message"></p><div class="result-review" id="result-review"></div><button id="restart-exercise" class="submit-button">Qayta ishlash</button></dialog>
+  <dialog id="submit-dialog" class="submit-dialog">
+    <form method="dialog">
+      <button class="dialog-close" aria-label="Yopish">×</button>
+      <span class="exam-kicker">TESTNI YAKUNLASH</span>
+      <h2>Javoblaringizni yakunlaysizmi?</h2>
+      <p id="submit-summary"></p>
+      <div class="dialog-actions">
+        <button class="secondary-button" value="cancel" type="button">Davom etish</button>
+        <button id="confirm-submit" class="submit-button" value="submit" type="submit">Yakunlash</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="results-dialog" class="results-dialog">
+    <div class="results-head">
+      <span class="exam-kicker">NATIJA</span>
+      <button id="close-results" class="dialog-close" aria-label="Yopish">×</button>
+    </div>
+    <h2 id="results-title">Mock yakunlandi</h2>
+    <div class="result-score" id="result-score"></div>
+    <p id="result-message"></p>
+    <div class="result-review" id="result-review"></div>
+    <button id="restart-exercise" class="submit-button" type="button">Qayta ishlash</button>
+  </dialog>
+  <dialog id="auth-dialog" class="auth-dialog">
+    <form method="dialog" id="auth-form">
+      <button class="dialog-close" aria-label="Yopish">×</button>
+      <span class="exam-kicker">KIRISH</span>
+      <h2>Telefon raqamiga kiring</h2>
+      <div id="auth-step-phone" class="auth-step">
+        <label for="phone-input">Telefon raqam</label>
+        <input id="phone-input" type="tel" inputmode="tel" placeholder="+998901234567" autocomplete="tel" />
+        <button id="send-code" class="submit-button" type="button">SMS yuborish</button>
+      </div>
+      <div id="auth-step-code" class="auth-step hidden">
+        <label for="otp-input">Tasdiqlash kodi</label>
+        <input id="otp-input" type="text" inputmode="numeric" maxlength="6" placeholder="123456" />
+        <button id="verify-code" class="submit-button" type="button">Tasdiqlash</button>
+      </div>
+      <p id="auth-status" class="auth-status"></p>
+      <div id="recaptcha-container"></div>
+    </form>
+  </dialog>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js" defer></script>
+  <script src="firebase-config.js" defer></script>
   <script src="questions.js" defer></script>
   <script src="questions-time.js" defer></script>
   <script src="questions-extra.js" defer></script>

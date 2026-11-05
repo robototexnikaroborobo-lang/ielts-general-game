@@ -1,5 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const storageKey = 'ielts-quest-progress-v1';
+const authKey = 'ielts-quest-auth-v1';
 const exercises = window.IELTS_QUESTION_BANK || [];
 const FULL_MOCK = 'all';
 let exerciseIndex = 0;
@@ -10,6 +11,132 @@ let secondsLeft = 60 * 60;
 let timerInterval = null;
 let timerPaused = false;
 let enlargedText = false;
+let authConfirmation = null;
+let currentUser = null;
+
+function authReady() {
+  return !!(window.firebase && firebase.apps && firebase.apps.length && firebase.auth);
+}
+
+function setAuthStatus(message, isError = false) {
+  const status = $('auth-status');
+  if (!status) return;
+  status.textContent = message || '';
+  status.classList.toggle('error', !!isError);
+}
+
+function persistAuth(user) {
+  const payload = user ? { uid: user.uid, phoneNumber: user.phoneNumber, displayName: user.displayName || user.phoneNumber } : null;
+  if (payload) localStorage.setItem(authKey, JSON.stringify(payload));
+  else localStorage.removeItem(authKey);
+}
+
+function restoreAuth() {
+  try {
+    const raw = localStorage.getItem(authKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && parsed.uid ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function updateAuthButton() {
+  const authButton = $('auth-button');
+  if (!authButton) return;
+  const user = currentUser || restoreAuth();
+  authButton.textContent = user ? `Kirish: ${user.phoneNumber || user.displayName || 'User'}` : 'Kirish';
+}
+
+function openAuthDialog() {
+  const dialog = $('auth-dialog');
+  if (!dialog) return;
+  setAuthStatus('');
+  $('auth-step-phone').classList.remove('hidden');
+  $('auth-step-code').classList.add('hidden');
+  $('phone-input').value = '';
+  $('otp-input').value = '';
+  dialog.showModal();
+}
+
+function closeAuthDialog() {
+  const dialog = $('auth-dialog');
+  if (dialog) dialog.close();
+}
+
+function ensureRecaptcha() {
+  if (!authReady()) {
+    setAuthStatus('Firebase ishlamayapti. Iltimos, firebase-config.js va SDK muvofiqligini tekshiring.', true);
+    return null;
+  }
+  if (!window.recaptchaVerifier) {
+    try {
+      window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+        size: 'invisible',
+        callback: () => setAuthStatus('SMS tayyor. Kodni kiriting.'),
+        'expired-callback': () => setAuthStatus('Recaptcha muddati tugadi. Qayta urinib ko‘ring.', true)
+      });
+    } catch (error) {
+      setAuthStatus('Recaptcha yaratilishda xatolik: ' + error.message, true);
+      return null;
+    }
+  }
+  return window.recaptchaVerifier;
+}
+
+function requestCode() {
+  const phone = $('phone-input').value.trim();
+  if (!phone) {
+    setAuthStatus('Telefon raqamni kiriting.', true);
+    return;
+  }
+  if (!authReady()) {
+    setAuthStatus('Firebase auth mavjud emas.', true);
+    return;
+  }
+  const verifier = ensureRecaptcha();
+  if (!verifier) return;
+  setAuthStatus('SMS yuborilmoqda...');
+  firebase.auth().signInWithPhoneNumber(phone, verifier)
+    .then((confirmation) => {
+      authConfirmation = confirmation;
+      $('auth-step-phone').classList.add('hidden');
+      $('auth-step-code').classList.remove('hidden');
+      setAuthStatus('Kodni kiriting.');
+    })
+    .catch((error) => {
+      setAuthStatus('SMS yuborishda xatolik: ' + error.message, true);
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = null;
+      }
+    });
+}
+
+function verifyCode() {
+  const code = $('otp-input').value.trim();
+  if (!authConfirmation) {
+    setAuthStatus('Avval SMS yuboring.', true);
+    return;
+  }
+  if (!code) {
+    setAuthStatus('Tasdiqlash kodini kiriting.', true);
+    return;
+  }
+  setAuthStatus('Tasdiqlanmoqda...');
+  authConfirmation.confirm(code)
+    .then((result) => {
+      currentUser = result.user;
+      persistAuth(currentUser);
+      updateAuthButton();
+      closeAuthDialog();
+      setAuthStatus('');
+    })
+    .catch((error) => {
+      setAuthStatus('Kod noto‘g‘ri yoki muddati tugagan: ' + error.message, true);
+    });
+}
 
 function activeExercises() { return fullMock ? exercises : [exercises[exerciseIndex]]; }
 function allQuestions() {
@@ -99,7 +226,7 @@ function makeQuestionCard(exercise, question, index) {
   prompt.className = 'mock-question-prompt';
   const instruction = document.createElement('p');
   instruction.className = 'question-instruction';
-  instruction.textContent = question.answerFormat ? `Ko‘rsatma: ${question.answerFormat}.` : question.type === 'true-false-not-given' ? 'TRUE, FALSE yoki NOT GIVEN ni tanlang.' : question.type === 'paragraph-matching' ? 'Mos keladigan paragraf harfini tanlang.' : '';
+  instruction.textContent = question.answerFormat ? `Ko‘rsatma: ${question.answerFormat}.` : question.type === 'true-false-not-given' ? 'TRUE, FALSE yoki NOT GIVEN ni tanlang.' : 'Sizga to‘g‘ri javobni tanlang.';
   const title = document.createElement('h3');
   title.textContent = question.text;
   prompt.append(instruction, title);
@@ -199,7 +326,7 @@ function renderMock() {
 function openSubmitDialog() {
   if (submitted || $('submit-dialog').open) return;
   const unanswered = allQuestions().filter(({ exercise, question }) => !hasResponse(exercise, question)).length;
-  $('submit-summary').textContent = unanswered ? `${unanswered} ta savol javobsiz qolgan. Shunga qaramay mashqni yakunlaysizmi?` : 'Barcha savollarga javob berdingiz. Mashqni yakunlashga tayyormisiz?';
+  $('submit-summary').textContent = unanswered ? `${unanswered} ta savol javobsiz qolgan. Shunga qaramay mashqni yakunlaysizmi?` : 'Barcha savollarga javob berdingiz. Mashqni yakunlashga tayyormi?';
   $('submit-dialog').showModal();
 }
 function submitExercise() {
@@ -213,9 +340,7 @@ function submitExercise() {
     if (!hasResponse(exercise, question)) return;
     answeredCount++;
     const value = selectedResponse(exercise, question);
-    const right = question.acceptedAnswers
-      ? question.acceptedAnswers.some((answer) => normalizeAnswer(answer) === normalizeAnswer(value))
-      : value === question.answer;
+    const right = question.acceptedAnswers ? question.acceptedAnswers.some((answer) => normalizeAnswer(answer) === normalizeAnswer(value)) : value === question.answer;
     if (right) correct++;
   });
   const storageDefaults = { score: 0, correct: 0, today: 0, lastDate: '', streak: 0 };
@@ -246,9 +371,7 @@ function submitExercise() {
     const title = document.createElement('strong');
     title.textContent = `${index + 1}. ${fullMock ? `${exercise.title} — ` : ''}${question.text}`;
     const value = selectedResponse(exercise, question);
-    const right = question.acceptedAnswers
-      ? question.acceptedAnswers.some((answer) => normalizeAnswer(answer) === normalizeAnswer(value))
-      : value === question.answer;
+    const right = question.acceptedAnswers ? question.acceptedAnswers.some((answer) => normalizeAnswer(answer) === normalizeAnswer(value)) : value === question.answer;
     const userAnswer = document.createElement('p');
     const userLabel = question.acceptedAnswers ? (value || 'Javob berilmagan') : (value === undefined ? 'Javob berilmagan' : question.options[value]);
     userAnswer.textContent = `Sizning javobingiz: ${userLabel}`;
@@ -279,6 +402,17 @@ function startTimer() {
     if (secondsLeft === 0) submitExercise();
   }, 1000);
 }
+
+$('auth-button').addEventListener('click', () => {
+  if (currentUser || restoreAuth()) {
+    const user = currentUser || restoreAuth();
+    setAuthStatus(`Kirishga tayyor: ${user.phoneNumber || user.displayName || 'User'}`);
+    return;
+  }
+  openAuthDialog();
+});
+$('send-code').addEventListener('click', requestCode);
+$('verify-code').addEventListener('click', verifyCode);
 $('submit-exam').addEventListener('click', openSubmitDialog);
 $('confirm-submit').addEventListener('click', (event) => { event.preventDefault(); submitExercise(); });
 $('timer-toggle').addEventListener('click', () => {
@@ -295,6 +429,10 @@ $('restart-exercise').addEventListener('click', () => {
   $('results-dialog').close();
   resetAttempt();
 });
+
+const savedAuth = restoreAuth();
+if (savedAuth) currentUser = savedAuth;
+updateAuthButton();
 renderExerciseOptions();
 updateTimer();
 renderMock();
